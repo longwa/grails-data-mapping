@@ -4,7 +4,6 @@ import groovy.transform.CompileDynamic
 import groovy.transform.CompileStatic
 import org.grails.datastore.gorm.support.BeforeValidateHelper
 import org.grails.datastore.gorm.validation.constraints.eval.ConstraintsEvaluator
-import org.grails.datastore.mapping.config.Property
 import org.grails.datastore.mapping.model.MappingContext
 import org.grails.datastore.mapping.model.PersistentEntity
 import org.grails.datastore.mapping.model.PersistentProperty
@@ -17,8 +16,6 @@ import org.grails.datastore.mapping.reflect.EntityReflector
 import org.springframework.context.MessageSource
 import org.springframework.validation.Errors
 import org.springframework.validation.FieldError
-
-import javax.persistence.CascadeType
 
 /**
  * A Validator that validates a {@link org.grails.datastore.mapping.model.PersistentEntity} against known constraints
@@ -115,7 +112,7 @@ class PersistentEntityValidator implements CascadingValidator, ConstrainedEntity
             // Prevent the cascade of validation in the event the associated object has already been validated
             // This shouldn't happen, but it is possible and will cause an OOM error when adding errors
             if(associatedObject != null && proxyHandler?.isInitialized(associatedObject) && !validatedObjects.contains(associatedObject)) {
-                if(association.isOwningSide() || association.doesCascade(CascadeType.PERSIST, CascadeType.MERGE)) {
+                if(association.doesCascadeValidate(associatedObject)) {
                     cascadeValidationToOne(parent, propertyName, (ToOne)association, errors, reflector, associatedObject, null, validatedObjects)
                 }
                 else {
@@ -127,11 +124,10 @@ class PersistentEntityValidator implements CascadingValidator, ConstrainedEntity
                         }
                     }
                 }
-
             }
         }
         else if (association instanceof ToMany) {
-            if(association.doesCascade(CascadeType.PERSIST, CascadeType.MERGE)) {
+            if(association.doesCascadeValidate(null)) {
                 cascadeValidationToMany(parent, propertyName, association, errors, reflector, validatedObjects)
             }
         }
@@ -181,6 +177,7 @@ class PersistentEntityValidator implements CascadingValidator, ConstrainedEntity
             }
         }
     }
+
     /**
      * Cascades validation to a one-to-one or many-to-one property.
      *
@@ -206,11 +203,9 @@ class PersistentEntityValidator implements CascadingValidator, ConstrainedEntity
         MappingContext mappingContext = associatedEntity.getMappingContext()
         EntityReflector associatedReflector = mappingContext.getEntityReflector(associatedEntity)
 
-        // We always cascade validation for the owning side regardless of cascade options
-        if (!association.isOwningSide()) {
-            if (!association.doesCascade(CascadeType.PERSIST, CascadeType.MERGE) || !doesCascadeValidate(propertyName)) {
-                return
-            }
+        // Make sure this object is eligible to cascade validation at all.
+        if (!association.doesCascadeValidate(associatedObject)) {
+            return
         }
 
         Association otherSide = null
@@ -253,7 +248,7 @@ class PersistentEntityValidator implements CascadingValidator, ConstrainedEntity
                     continue
                 }
                 if (associatedPersistentProperty instanceof Association) {
-                    if(association.doesCascade(CascadeType.PERSIST, CascadeType.MERGE)) {
+                    if(association.doesCascadeValidate(associatedObject)) {
                         if(association.isBidirectional() && associatedPersistentProperty == association.inverseSide) {
                             // If this property is the inverse side of the currently processed association then
                             // we don't want to process it because that would cause a potential infinite loop
@@ -273,17 +268,6 @@ class PersistentEntityValidator implements CascadingValidator, ConstrainedEntity
         finally {
             errors.setNestedPath(nestedPath)
         }
-    }
-
-    /**
-     * @return true if this property should cascade validation (or does not exist since its the default)
-     */
-    private boolean doesCascadeValidate(String propertyName) {
-        Property mappingConfig = entity.getPropertyByName(propertyName)?.getMapping()?.getMappedForm()
-        if (!mappingConfig) {
-            return true
-        }
-        return mappingConfig.cascadeValidate
     }
 
     private String buildNestedPath(String nestedPath, String componentName, Object indexOrKey) {
