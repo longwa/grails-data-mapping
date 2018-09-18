@@ -88,6 +88,11 @@ class Mapping extends Entity<PropertyConfig> {
     boolean autoImport = true
 
     /**
+     * Sets whether to-one association proxies are automatically unwrapped when the getter is called
+     */
+    boolean autoUnwrapProxies = true
+
+    /**
      * The configuration for each property
      */
     Map<String, PropertyConfig> columns = [:]

@@ -396,6 +396,16 @@ class HibernateMappingBuilderTests extends GroovyTestCase {
         assertFalse mapping.autoTimestamp
     }
 
+    void testAutoUnwrapProxies() {
+        def builder = new HibernateMappingBuilder("Foo")
+        def mapping = builder.evaluate {
+            table 'myTable'
+            autoUnwrapProxies false
+        }
+
+        assertFalse mapping.autoUnwrapProxies
+    }
+
     void testCustomAssociationCachingConfig1() {
         def builder = new HibernateMappingBuilder("Foo")
         def mapping = builder.evaluate {

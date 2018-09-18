@@ -250,6 +250,14 @@ class HibernateMappingBuilder implements MappingConfigurationBuilder<Mapping, Pr
     }
 
     /**
+     * Set whether to automatically unwrap proxies when calling to-one association getter methods
+     */
+    @CompileStatic
+    void autoUnwrapProxies(boolean b) {
+        mapping.autoUnwrapProxies = b
+    }
+
+    /**
      * <p>Configures whether to use versioning for optimistic locking
      * <code> { version false }
      *
