@@ -138,23 +138,21 @@ abstract class AbstractHibernateGormInstanceApi<D> extends GormInstanceApi<D> {
                     return null
                 }
 
-                setObjectToReadWrite(target);
+                setObjectToReadWrite(target)
             }
         }
 
         // this piece of code will retrieve a persistent instant
         // of a domain class property is only the id is set thus
         // relieving this burden off the developer
-        autoRetrieveAssocations datastore, domainClass, target
+        autoRetrieveAssociations datastore, domainClass, target
 
-        // If validation is disabled, skip it or if a flush:true is passed then disable it too to avoid duplicate validation
         GormValidateable validateable = (GormValidateable) target
-        boolean shouldSkipValidation = !shouldValidate || shouldFlush
-        validateable.skipValidation(shouldSkipValidation)
-
-
-
         try {
+            // Once we get here we've either validated this object or skipped validation, either way
+            // we don't need to validate again for the rest of this save.
+            validateable.skipValidation(true)
+
             if (shouldInsert(arguments)) {
                 return performInsert(target, shouldFlush)
             }
@@ -167,8 +165,12 @@ abstract class AbstractHibernateGormInstanceApi<D> extends GormInstanceApi<D> {
                 }
                 return performSave(target, shouldFlush)
             }
-        } finally {
-            validateable.skipValidation(!shouldFlush)
+        }
+        finally {
+            // After save, we have to make sure this entity is setup to validate again. It's possible it will
+            // be validated again if this save didn't flush, but without checking it's dirty state we can't really
+            // know for sure that it hasn't changed and need to err on the side of caution.
+            validateable.skipValidation(false)
         }
     }
 
@@ -288,7 +290,7 @@ abstract class AbstractHibernateGormInstanceApi<D> extends GormInstanceApi<D> {
         try {
             session.flush()
         } catch (HibernateException e) {
-            // session should not be flushed again after a data acccess exception!
+            // session should not be flushed again after a data access exception!
             session.setFlushMode FlushMode.MANUAL
             throw e
         }
@@ -299,7 +301,7 @@ abstract class AbstractHibernateGormInstanceApi<D> extends GormInstanceApi<D> {
      * @param target The target object
      */
     @SuppressWarnings("unchecked")
-    private void autoRetrieveAssocations(Datastore datastore, PersistentEntity entity, Object target) {
+    private void autoRetrieveAssociations(Datastore datastore, PersistentEntity entity, Object target) {
         EntityReflector reflector = datastore.mappingContext.getEntityReflector(entity)
         IHibernateTemplate t = this.hibernateTemplate
         for (PersistentProperty prop in entity.associations) {
@@ -457,7 +459,7 @@ abstract class AbstractHibernateGormInstanceApi<D> extends GormInstanceApi<D> {
      *
      * ThreadLocal is used to pass the "insert:true" information to Hibernate.
      *
-     * @see org.hibernate.event.def.AbstractSaveEventListener#getAssumedUnsaved()
+     * @see org.hibernate.event.internal.AbstractSaveEventListener#getAssumedUnsaved()
      */
     public static Boolean getAssumedUnsaved() {
         return insertActiveThreadLocal.get();

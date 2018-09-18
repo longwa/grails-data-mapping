@@ -58,8 +58,6 @@ trait GormValidateable {
         return this.skipValidate
     }
 
-
-
     /**
      * Validates an instance for the given arguments
      *
@@ -67,11 +65,7 @@ trait GormValidateable {
      * @return True if the instance is valid
      */
     boolean validate(Map arguments) {
-        if(!shouldSkipValidation()) {
-            currentGormValidationApi().validate this, arguments
-        } else {
-            return true
-        }
+        currentGormValidationApi().validate this, arguments
     }
 
     /**
@@ -81,11 +75,7 @@ trait GormValidateable {
      * @return True if the instance is valid
      */
     boolean validate(List fields) {
-        if(!shouldSkipValidation()) {
-            currentGormValidationApi().validate this, fields
-        } else {
-            return true
-        }
+        currentGormValidationApi().validate this, fields
     }
 
     /**
