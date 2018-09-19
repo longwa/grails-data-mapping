@@ -167,10 +167,11 @@ abstract class AbstractHibernateGormInstanceApi<D> extends GormInstanceApi<D> {
             }
         }
         finally {
-            // After save, we have to make sure this entity is setup to validate again. It's possible it will
-            // be validated again if this save didn't flush, but without checking it's dirty state we can't really
-            // know for sure that it hasn't changed and need to err on the side of caution.
-            validateable.skipValidation(false)
+            // If we didn't explicitly flush, then leave the object flagged to skip validation for the next flush
+            // to avoid calling validate again. Note, if the object is modified between this save and the flush, the
+            // validation will not be performed unless save is called explicitly. This should probably be addressed at
+            // some point.
+            validateable.skipValidation(!shouldFlush)
         }
     }
 
