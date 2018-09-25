@@ -57,6 +57,7 @@ trait DirtyCheckable {
     void markDirty() {
         if( $changedProperties != null && $changedProperties.isEmpty()) {
             $changedProperties = DirtyCheckingSupport.DIRTY_CLASS_MARKER
+            resetValidationState()
         }
     }
 
@@ -67,6 +68,7 @@ trait DirtyCheckable {
     void markDirty(String propertyName) {
         if( $changedProperties != null && !$changedProperties.containsKey(propertyName))  {
             $changedProperties.put propertyName, ((GroovyObject)this).getProperty(propertyName)
+            resetValidationState()
         }
     }
 
@@ -80,6 +82,7 @@ trait DirtyCheckable {
             def oldValue = ((GroovyObject) this).getProperty(propertyName)
             if(newValue != oldValue) {
                 $changedProperties.put propertyName, oldValue
+                resetValidationState()
             }
         }
     }
@@ -93,6 +96,7 @@ trait DirtyCheckable {
         if( $changedProperties != null && !$changedProperties.containsKey(propertyName))  {
             if(newValue != oldValue) {
                 $changedProperties.put propertyName, oldValue
+                resetValidationState()
             }
         }
     }
@@ -124,6 +128,15 @@ trait DirtyCheckable {
             return $changedProperties.get(propertyName)
         } else {
             return null
+        }
+    }
+
+    /**
+     * If this entity is GormValidateable, then make sure that we reset the skip validation to false
+     */
+    private void resetValidationState() {
+        if (this.respondsTo("skipValidation")) {
+            this.invokeMethod("skipValidation", false)
         }
     }
 }
