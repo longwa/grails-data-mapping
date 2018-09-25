@@ -59,15 +59,13 @@ class HibernateRuntimeUtils {
         Errors originalErrors = isGormValidateable ? ((GormValidateable)target).getErrors() : (Errors) mc.getProperty(target, GormProperties.ERRORS)
         for (Object o in originalErrors.fieldErrors) {
             FieldError fe = (FieldError)o
-            if (fe.isBindingFailure()) {
-                errors.addError(new FieldError(fe.getObjectName(),
-                        fe.field,
-                        fe.rejectedValue,
-                        fe.bindingFailure,
-                        fe.codes,
-                        fe.arguments,
-                        fe.defaultMessage))
-            }
+            errors.addError(new FieldError(fe.getObjectName(),
+                fe.field,
+                fe.rejectedValue,
+                fe.bindingFailure,
+                fe.codes,
+                fe.arguments,
+                fe.defaultMessage))
         }
 
         if(isGormValidateable) {
